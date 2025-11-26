@@ -1,6 +1,6 @@
-# StudyBites
+# StudySpotter
 
-StudyBites is a study spot finder to help students and others alike to find the best local study spots. This tool is meant to streamline and optimize finding the perfect study spot based on a person's study needs.
+StudySpotter is a study spot finder to help students and others alike to find the best local study spots. This tool is meant to streamline and optimize finding the perfect study spot based on a person's study needs.
 
 
 ## Core Features
@@ -41,7 +41,7 @@ The Study Score (rated 1-5) evaluates locations based on:
 1. Clone the repository:
 
 ```
-git clone https://github.com/yourusername/studybites.git
+git clone https://github.com/yourusername/studyspotter.git
 ```
 
 2. Install dependencies:
