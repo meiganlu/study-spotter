@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import Image from "next/image";
 import SearchForm from "../components/SearchForm";
 import FeatureCard from "../components/FeatureCard";
@@ -26,6 +26,13 @@ export default function HomeClient() {
   const [currentPage, setCurrentPage] = useState(1);
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   async function handleSearch(e?: React.FormEvent) {
     e?.preventDefault();
@@ -91,9 +98,9 @@ export default function HomeClient() {
   // Toggling visibility is cleaner than unmounting/remounting
   return (
     <div className="h-full min-h-screen">
-      <nav className="sticky top-0 z-50 py-6 bg-transparent">
+      <nav className={`sticky top-0 z-50 py-6 transition-colors duration-300 ${scrollY > 10 ? "bg-white/90 backdrop-blur-sm" : "bg-transparent"}`}>
         <div className="max-w-6xl mx-auto px-8">
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 md:gap-8">
             <button
               onClick={() => {
                 setShowResults(false);
@@ -105,7 +112,7 @@ export default function HomeClient() {
               <Image src="/logo.png" alt="StudySpotter" width={120} height={120} />
             </button>
 
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <SearchForm value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch}/>
             </div>
           </div>

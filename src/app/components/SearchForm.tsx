@@ -21,7 +21,7 @@ export default function SearchForm({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="Enter location (e.g., San Francisco)"
-          className="w-full px-6 py-3 rounded-full bg-white/90 backdrop-blur-md border border-black/60 text-[#494949] placeholder-[#292929]/50 focus:outline-none"
+          className="w-full pl-6 pr-14 py-3 rounded-full bg-white/90 backdrop-blur-md border border-black/60 text-[#494949] placeholder-[#292929]/50 focus:outline-none truncate"
         />
         <button
           type="submit"
