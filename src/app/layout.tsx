@@ -24,8 +24,8 @@ export default function RootLayout({
           {children}
           <footer className="py-6 bg-[rgb(93,109,67)]/95">
             <div className="max-w-6xl mx-auto">
-              <p className="text-center text-sm text-[#000000]">
-                © 2025 Meigan Lu. All Rights Reserved.
+              <p className="text-center text-sm text-[#fffdf9]">
+                © 2026 Meigan Lu. All Rights Reserved.
               </p>
             </div>
           </footer>

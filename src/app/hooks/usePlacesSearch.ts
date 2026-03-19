@@ -120,23 +120,46 @@ async function placesToStudySpots(places: google.maps.places.PlaceResult[]): Pro
 
     // Extract key terms from reviews
     if (details?.reviews) {
-      const keyTerms = extractKeyTerms(details.reviews);
-      spot.reviewMentions = keyTerms;
+      spot.reviewMentions = extractKeyTerms(details.reviews);
     }
 
     // Get photo URL
     if (details?.photos && details.photos.length > 0) {
-      const photo = details.photos[0];
-      spot.photoUrl = photo.getUrl({ maxWidth: 800, maxHeight: 600 });
+      spot.photoUrl = details.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 });
     }
   });
 
   await Promise.all(detailsPromises);
 
-  return Array.from(map.values()).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  return Array.from(map.values());
 }
 
-export async function textSearchMultiple(queries: string[]): Promise<StudySpot[]> {
+async function rankSpots(spots: StudySpot[], query: string): Promise<StudySpot[]> {
+  try {
+    const payload = spots.map(s => ({
+      id: s.id,
+      name: s.name,
+      types: s.types,
+      reviewMentions: s.reviewMentions,
+      rating: s.rating,
+    }));
+
+    const res = await fetch("/api/rank", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, spots: payload }),
+    });
+
+    const { scores } = await res.json();
+
+    return [...spots].sort((a, b) => (scores[b.id] ?? 0) - (scores[a.id] ?? 0));
+  } catch {
+    // If ranking fails, fall back to rating sort — app still works
+    return [...spots].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0));
+  }
+}
+
+export async function textSearchMultiple(queries: string[], intent?: string): Promise<StudySpot[]> {
   await ensureMapsLoaded();
 
   const offscreen = document.createElement("div");
@@ -157,12 +180,14 @@ export async function textSearchMultiple(queries: string[]): Promise<StudySpot[]
   }));
 
   const all = (await Promise.all(promises)).flat();
-
   offscreen.remove();
 
-  const studySpots = await placesToStudySpots(all);
+  const spots = await placesToStudySpots(all);
 
-  return studySpots;
+  // Use explicit intent if provided, otherwise fall back to first query
+  const ranked = await rankSpots(spots, intent || queries[0]);
+
+  return ranked;
 }
 
 export interface SpotFilters {

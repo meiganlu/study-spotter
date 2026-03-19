@@ -13,7 +13,8 @@ import type { StudySpot } from "../types";
 const spotsPerPage = 6;
 
 export default function HomeClient() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [location, setLocation] = useState("");
+  const [intent, setIntent] = useState("");
   const [officialLocation, setOfficialLocation] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [spots, setSpots] = useState<StudySpot[]>([]);
@@ -36,7 +37,7 @@ export default function HomeClient() {
 
   async function handleSearch(e?: React.FormEvent) {
     e?.preventDefault();
-    if (!searchQuery.trim()) return;
+    if (!location.trim()) return;
 
     setShowResults(true);
     setIsLoading(true);
@@ -44,11 +45,10 @@ export default function HomeClient() {
     setCurrentPage(1);
 
     try {
-      const geocodeResults = await geocodeAddress(searchQuery);
+      const geocodeResults = await geocodeAddress(location);
       if (geocodeResults?.[0]) {
         const loc = geocodeResults[0];
 
-        // Set the location name
         const addressComponents = loc.address_components || [];
         let city = "";
         let state = "";
@@ -56,19 +56,17 @@ export default function HomeClient() {
           if (c.types.includes("locality")) city = c.long_name;
           if (c.types.includes("administrative_area_level_1")) state = c.short_name;
         });
-        setOfficialLocation(city || state ? `${city}${city && state ? ", " : ""}${state}` : searchQuery);
+        setOfficialLocation(city || state ? `${city}${city && state ? ", " : ""}${state}` : location);
 
-        // Run several queries to cover different spot types
         const queries = [
-          `${searchQuery} "public library" "school library"`,
-          `${searchQuery} "cafe" "study" "study spot" "co-working space"`,
-          `${searchQuery} "student center" "student union"`,
+          `${location} "public library" "school library"`,
+          `${location} "cafe" "study" "study spot" "co-working space"`,
+          `${location} "student center" "student union"`,
         ];
-        const studySpots = await textSearchMultiple(queries);
+        const studySpots = await textSearchMultiple(queries, intent || location);
         setSpots(studySpots);
       } else {
-        // Set location to search query and empty spots if all else fails
-        setOfficialLocation(searchQuery);
+        setOfficialLocation(location);
         setSpots([]);
       }
     } catch (err) {
@@ -105,7 +103,8 @@ export default function HomeClient() {
               onClick={() => {
                 setShowResults(false);
                 setSpots([]);
-                setSearchQuery("");
+                setLocation("");
+                setIntent("");
               }}
               aria-label="Home"
             >
@@ -113,7 +112,13 @@ export default function HomeClient() {
             </button>
 
             <div className="flex-1 min-w-0">
-              <SearchForm value={searchQuery} onChange={setSearchQuery} onSubmit={handleSearch}/>
+              <SearchForm
+                location={location}
+                intent={intent}
+                onLocationChange={setLocation}
+                onIntentChange={setIntent}
+                onSubmit={handleSearch}
+              />
             </div>
           </div>
         </div>
@@ -167,7 +172,7 @@ export default function HomeClient() {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl text-[#292929] font-light">
               Study Spots in <span className="text-[rgb(90,114,53)]/95">{officialLocation}</span>
-              <span className="text-sm text-[#515D5A] ml-2"> ({filteredSpots.length} results)</span>
+              <span className="text-sm text-[#515D5A] ml-2"> {isLoading ? "Loading..." : `(${filteredSpots.length} results)`}</span>
             </h2>
 
             <div className="flex gap-2">
@@ -284,11 +289,6 @@ export default function HomeClient() {
               Clear All
             </button>
           </div>
-
-
-
-
-
 
           {/* Keep map mounted in either Map or List view */}
           <section className="relative h-[calc(100vh-12rem)] rounded-2xl overflow-hidden">
