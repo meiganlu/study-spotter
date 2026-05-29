@@ -19,7 +19,7 @@ StudySpotter is a study spot finder to help students and others alike to find th
 * Google Places API
 
 
-## Getting Started
+## Getting Started Locally
 
 ### Prerequisites
 - Make sure to have Google Maps API key ready
@@ -61,3 +61,7 @@ Geocoding API
 
 * Ability to have user login and authentification
 * Ability to save study spots
+
+
+## Visual Overview
+![](/images/studyspotter.png)
