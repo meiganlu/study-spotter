@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 
+// Search bar with two inputs: what the user wants and where
 export default function SearchForm({
   location,
   intent,
@@ -19,6 +20,7 @@ export default function SearchForm({
   return (
     <form onSubmit={onSubmit}>
       <div className="flex items-center bg-white/90 backdrop-blur-md border border-black/60 rounded-full overflow-hidden">
+        {/* What the user is looking for (used for ranking) */}
         <input
           aria-label="Search intent"
           type="text"
@@ -28,6 +30,7 @@ export default function SearchForm({
           className="flex-1 pl-6 pr-3 py-3 bg-transparent text-[#494949] placeholder-[#292929]/50 focus:outline-none"
         />
         <div className="w-px h-6 bg-black/20" />
+        {/* City or zip */}
         <input
           aria-label="Search location"
           type="text"

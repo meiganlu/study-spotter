@@ -29,26 +29,31 @@ export default function HomeClient() {
   const [showRatingDropdown, setShowRatingDropdown] = useState(false);
   const [scrollY, setScrollY] = useState(0);
 
+  // Track scroll so the nav bar gets a background once the page scrolls
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Runs a search: find the location, gather nearby spots from Google, then rank them
   async function handleSearch(e?: React.FormEvent) {
     e?.preventDefault();
     if (!location.trim()) return;
 
+    // Reset results from the last search
     setShowResults(true);
     setIsLoading(true);
     setSpots([]);
     setCurrentPage(1);
 
     try {
+      // Turn the city or zip into coordinates
       const geocodeResults = await geocodeAddress(location);
       if (geocodeResults?.[0]) {
         const loc = geocodeResults[0];
 
+        // Pull the city and state for the results heading
         const addressComponents = loc.address_components || [];
         let city = "";
         let state = "";
@@ -58,14 +63,27 @@ export default function HomeClient() {
         });
         setOfficialLocation(city || state ? `${city}${city && state ? ", " : ""}${state}` : location);
 
+        // One search per type of place near the searched area
+        // Separate searches return more results
+        const searchArea = city || state ? `${city}${city && state ? ", " : ""}${state}` : location;
         const queries = [
-          `${location} "public library" "school library"`,
-          `${location} "cafe" "study" "study spot" "co-working space"`,
-          `${location} "student center" "student union"`,
+          `cafe near ${searchArea}`,
+          `library near ${searchArea}`,
+          `coworking space near ${searchArea}`,
+          `student union near ${searchArea}`,
         ];
-        const studySpots = await textSearchMultiple(queries, intent || location);
+        // Also search with the user's own words to find places outside these types
+        if (intent.trim()) queries.push(`${intent.trim()} near ${searchArea}`);
+
+        // Rank by what the user typed, or by a general study query if it's blank
+        const studySpots = await textSearchMultiple(
+          queries,
+          intent.trim() || "a good place to study",
+          loc.geometry.location
+        );
         setSpots(studySpots);
       } else {
+        // Location not found
         setOfficialLocation(location);
         setSpots([]);
       }
@@ -77,6 +95,7 @@ export default function HomeClient() {
     }
   }
 
+  // Apply the rating and category filters
   const filteredSpots = useMemo(() => filterStudySpots(spots, filters), [spots, filters]);
 
   // For pagination
@@ -85,6 +104,7 @@ export default function HomeClient() {
   const indexOfFirst = indexOfLast - spotsPerPage;
   const currentSpots = filteredSpots.slice(indexOfFirst, indexOfLast);
 
+  // Center the map on the top-ranked spot
   const mapCenter = useMemo(() => {
     if (spots.length && spots[0]?.geometry?.location) {
       return spots[0].geometry.location;
@@ -93,12 +113,12 @@ export default function HomeClient() {
   }, [spots]);
 
   // Let the Map and List view both exist in DOM
-  // Toggling visibility is cleaner than unmounting/remounting
   return (
     <div className="h-full min-h-screen">
       <nav className={`sticky top-0 z-50 py-6 transition-colors duration-300 ${scrollY > 10 ? "bg-white/90 backdrop-blur-sm" : "bg-transparent"}`}>
         <div className="max-w-6xl mx-auto px-8">
           <div className="flex items-center gap-4 md:gap-8">
+            {/* Logo goes back to the home page and clears the search */}
             <button
               onClick={() => {
                 setShowResults(false);
@@ -124,6 +144,7 @@ export default function HomeClient() {
         </div>
       </nav>
 
+      {/* Home page, shown before a search */}
       {!showResults && (
         <>
           <main className="flex-1">
@@ -167,6 +188,7 @@ export default function HomeClient() {
         </>
       )}
 
+      {/* Results page */}
       {showResults && (
         <div className="max-w-6xl mx-auto p-4">
           <div className="flex justify-between items-center mb-6">
@@ -175,6 +197,7 @@ export default function HomeClient() {
               <span className="text-sm text-[#515D5A] ml-2"> {isLoading ? "Loading..." : `(${filteredSpots.length} results)`}</span>
             </h2>
 
+            {/* List and Map view toggle */}
             <div className="flex gap-2">
               <button
                 onClick={() => setViewMode("list")}
@@ -314,6 +337,7 @@ export default function HomeClient() {
                   </div>
                 ) : (
                   <>
+                    {/* Shows one page of spots at a time */}
                     <ListView spots={filteredSpots} currentSpots={currentSpots} />
                     {totalPages > 1 && (
                       <div className="flex justify-center items-center gap-2 py-4">

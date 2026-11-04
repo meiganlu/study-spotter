@@ -1,5 +1,6 @@
 import Image from "next/image";
 
+// Icon card on the home page for each type of study spot
 export default function FeatureCard({ title, icon }: { title: string; icon: string; }) {
   return (
     <div className="group">
@@ -8,6 +9,7 @@ export default function FeatureCard({ title, icon }: { title: string; icon: stri
           <div className="p-4 backdrop-blur-md">
             <Image src={icon} alt={title} width={60} height={60} className="invert" />
           </div>
+          {/* Icon credit, shown on hover */}
           <span className="absolute bottom-[80%] left-1/2 -translate-x-1/2 text-[10px] text-gray-300 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             Icon from Flaticon
           </span>

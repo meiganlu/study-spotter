@@ -1,3 +1,4 @@
+// Previous and Next buttons for the results list
 export default function Pagination({
   currentPage,
   totalPages,

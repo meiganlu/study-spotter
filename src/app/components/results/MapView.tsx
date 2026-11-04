@@ -19,6 +19,7 @@ export default function MapView({ spots, center }: { spots: StudySpot[]; center?
       await ensureMapsLoaded();
       if (!mounted) return;
       if (!mapRef.current) {
+        // Defaults to San Francisco until spots load
         mapRef.current = new google.maps.Map(containerRef.current, {
           center: center ? center : { lat: 37.7749, lng: -122.4194 },
           zoom: 13,
@@ -51,6 +52,7 @@ export default function MapView({ spots, center }: { spots: StudySpot[]; center?
         content: infoWindowHtml({ name: spot.name, vicinity: spot.vicinity, rating: spot.rating }),
       });
 
+      // Show the spot's info when its marker is clicked
       marker.addListener("click", () => infow.open(map, marker));
       markersRef.current.push(marker);
       infoWindowsRef.current.push(infow);
