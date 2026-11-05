@@ -33,9 +33,11 @@ export async function searchStudySpots(location: string, intent: string): Promis
     `library near ${locationLabel}`,
     `coworking space near ${locationLabel}`,
     `student union near ${locationLabel}`,
+    `boba tea near ${locationLabel}`,
   ];
   // Also search with the user's own words to find places outside these types
-  if (intent.trim()) queries.push(`${intent.trim()} near ${locationLabel}`);
+  // "study spot" gives Google context, so "outlets" means power outlets, not outlet malls
+  if (intent.trim()) queries.push(`${intent.trim()} study spot near ${locationLabel}`);
 
   const spots = await findStudySpots(queries, loc.geometry.location);
 

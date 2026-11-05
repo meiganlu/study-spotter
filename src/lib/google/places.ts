@@ -1,6 +1,7 @@
 import type { StudySpot } from "@/types";
 import { runWithLimit, sleep } from "../async";
-import { extractTags } from "../tags";
+import { isClearlyNotAStudySpot, mustProveStudyFriendly } from "../categories";
+import { extractTags, findFeatures } from "../tags";
 import { ensureMapsLoaded } from "./maps";
 
 // Max distance from the searched location (meters)
@@ -8,6 +9,9 @@ const SEARCH_RADIUS_M = 8000;
 
 // Number of details requests running at once
 const DETAILS_CONCURRENCY = 6;
+
+// Review mentions that show people actually study at a place
+const STUDY_EVIDENCE = ["study", "work", "outlets", "wifi", "quiet"];
 
 // Places text search needs a map, so create a hidden one
 function createHiddenService(): { service: google.maps.places.PlacesService; cleanup: () => void } {
@@ -71,9 +75,12 @@ async function searchNearby(queries: string[], center: google.maps.LatLng): Prom
 
   // Location is only a bias, so remove results that are too far away
   // (e.g. "Alameda" also matching places elsewhere in Alameda County)
+  // Also drop places that clearly aren't study spots, before paying to fetch their details
+  // (e.g. "outlets" bringing back outlet malls)
   return all.filter(place => {
     const loc = place.geometry?.location;
-    return loc ? distanceMeters(center, loc) <= SEARCH_RADIUS_M : false;
+    if (!loc || distanceMeters(center, loc) > SEARCH_RADIUS_M) return false;
+    return !isClearlyNotAStudySpot(place.types);
   });
 }
 
@@ -147,5 +154,15 @@ export async function findStudySpots(queries: string[], center: google.maps.LatL
     }
   });
 
-  return Array.from(spots.values());
+  // Places that aren't study spots by nature (boba shops, bakeries...) stay only if
+  // reviewers mention studying there; good boba alone doesn't make a good study spot
+  return Array.from(spots.values()).filter(
+    spot => !mustProveStudyFriendly(spot.types, spot.name) || hasStudyEvidence(spot)
+  );
+}
+
+// Whether a place's reviews mention studying, working, outlets, wifi, or quiet
+function hasStudyEvidence(spot: StudySpot): boolean {
+  const mentioned = findFeatures((spot.reviews ?? []).join(" "));
+  return STUDY_EVIDENCE.some(feature => mentioned.includes(feature));
 }

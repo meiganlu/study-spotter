@@ -3,6 +3,7 @@ import { findFeatures } from "../../tags";
 // Words that name a kind of place, and the category they mean
 // Longer phrases first, so "coffee shop" is removed before "coffee"
 const CATEGORY_WORDS: [string, string[]][] = [
+  ["Boba/Tea Shop", ["bubble tea", "milk tea", "boba shops", "boba shop", "boba", "tea shops", "tea shop", "tea house"]],
   ["Café/Coffee Shop", ["coffee shops", "coffee shop", "cafés", "cafes", "café", "cafe", "coffee"]],
   ["Library", ["libraries", "library"]],
   ["Student Lounge", ["student unions", "student union", "student lounges", "student lounge", "student center", "campus"]],

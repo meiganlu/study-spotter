@@ -51,7 +51,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
             </div>
           ) : (
             <span className="text-7xl">
-              {getCategoryEmoji(spot.types)}
+              {getCategoryEmoji(spot.types, spot.name)}
             </span>
           )}
 
