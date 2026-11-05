@@ -26,6 +26,7 @@ export function parseRankRequest(body: unknown): { query: string; spots: RankSpo
     cleanSpots.push({
       id: s.id,
       name: s.name.slice(0, 200),
+      primaryType: isString(s.primaryType) ? s.primaryType : undefined,
       types: Array.isArray(s.types) ? s.types.filter(isString).slice(0, 20) : undefined,
       reviews: Array.isArray(s.reviews)
         ? s.reviews

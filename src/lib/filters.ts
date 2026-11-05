@@ -14,7 +14,7 @@ export function filterStudySpots(spots: StudySpot[], filters: SpotFilters): Stud
 
     // Category filter
     if (filters.categories && filters.categories.length > 0) {
-      if (!filters.categories.includes(getCategory(spot.types, spot.name))) return false;
+      if (!filters.categories.includes(getCategory(spot))) return false;
     }
 
     return true;

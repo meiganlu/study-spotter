@@ -6,6 +6,9 @@ const CATEGORY_WORDS: [string, string[]][] = [
   ["Boba/Tea Shop", ["bubble tea", "milk tea", "boba shops", "boba shop", "boba", "tea shops", "tea shop", "tea house"]],
   ["Café/Coffee Shop", ["coffee shops", "coffee shop", "cafés", "cafes", "café", "cafe", "coffee"]],
   ["Library", ["libraries", "library"]],
+  ["Coworking Space", ["coworking spaces", "coworking space", "co-working space", "coworking", "co-working"]],
+  ["Bookstore", ["bookstores", "bookstore", "book stores", "book store", "bookshop"]],
+  ["Bakery", ["bakeries", "bakery"]],
   ["Student Lounge", ["student unions", "student union", "student lounges", "student lounge", "student center", "campus"]],
 ];
 

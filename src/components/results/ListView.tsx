@@ -32,7 +32,7 @@ export default function ListView({ spots, currentSpots }: { spots: StudySpot[]; 
                   {/* Category */}
                   {spot.types && spot.types.length > 0 && (
                     <p className="text-sm text-[rgb(93,109,67)] font-medium mb-2 capitalize">
-                      {getCategory(spot.types, spot.name)}
+                      {getCategory(spot)}
                     </p>
                   )}
 

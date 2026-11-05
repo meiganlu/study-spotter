@@ -8,6 +8,7 @@ export async function rankSpots(spots: StudySpot[], query: string): Promise<Stud
     const payload = spots.map(s => ({
       id: s.id,
       name: s.name,
+      primaryType: s.primaryType,
       types: s.types,
       reviews: s.reviews,
       rating: s.rating,

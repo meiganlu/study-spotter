@@ -51,7 +51,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
             </div>
           ) : (
             <span className="text-7xl">
-              {getCategoryEmoji(spot.types, spot.name)}
+              {getCategoryEmoji(spot)}
             </span>
           )}
 
@@ -99,7 +99,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
             <div className="mb-4">
               <p className="text-xs font-medium text-[rgb(93,109,67)]/80 mb-1">CATEGORY</p>
               <p className="text-base text-[#2C4A3E] font-semibold capitalize">
-                {getCategory(spot.types, spot.name)}
+                {getCategory(spot)}
               </p>
             </div>
           )}

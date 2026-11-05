@@ -24,6 +24,7 @@ const MAX_REVIEW_CHARS = 2000;
 export interface RankSpot {
   id: string;
   name: string;
+  primaryType?: string;
   types?: string[];
   reviews?: string[];
   rating?: number;
@@ -98,7 +99,7 @@ export function scoreSpots(
 
   const scores: Record<string, number> = {};
   spots.forEach((spot, i) => {
-    const categoryBonus = query.category && getCategory(spot.types, spot.name) === query.category ? CATEGORY_BONUS : 0;
+    const categoryBonus = query.category && getCategory(spot) === query.category ? CATEGORY_BONUS : 0;
     scores[spot.id] = MATCH_WEIGHT * match[i] + STUDY_WEIGHT * study[i] + RATING_WEIGHT * rating[i] + categoryBonus;
   });
   return scores;

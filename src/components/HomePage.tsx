@@ -106,6 +106,8 @@ export default function HomePage() {
                 setSpots([]);
                 setLocation("");
                 setIntent("");
+                setFilters({ minRating: undefined, categories: [] });
+                setCurrentPage(1);
               }}
               aria-label="Home"
             >

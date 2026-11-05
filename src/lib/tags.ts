@@ -44,10 +44,10 @@ export function findFeatures(text: string): string[] {
 }
 
 // Finds the top 3 study features mentioned in a place's reviews
-export function extractTags(reviews?: google.maps.places.PlaceReview[]): string[] {
-  if (!reviews || reviews.length === 0) return [];
+export function extractTags(reviews: string[]): string[] {
+  if (reviews.length === 0) return [];
 
-  const counts = countFeatures(reviews.map(r => r.text || "").join(" "));
+  const counts = countFeatures(reviews.join(" "));
 
   // Sort by count and return top 3 keywords
   return Array.from(counts.entries())
