@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useRef } from "react";
-import type { StudySpot } from "../../types";
-import { infoWindowHtml } from "../../utils/maps";
-import { ensureMapsLoaded } from "../../hooks/usePlacesSearch";
+import type { StudySpot } from "@/types";
+import { infoWindowHtml } from "@/lib/google/infoWindow";
+import { ensureMapsLoaded } from "@/lib/google/maps";
 
 export default function MapView({ spots, center }: { spots: StudySpot[]; center?: google.maps.LatLng; }) {
   const containerRef = useRef<HTMLDivElement | null>(null);

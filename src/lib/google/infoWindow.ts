@@ -1,3 +1,4 @@
+// HTML for the popup shown when a map marker is clicked
 export function infoWindowHtml(spot: {
   name: string;
   vicinity: string;

@@ -1,110 +1,82 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getAnchors } from "@/lib/ranking/server/anchors";
+import { LruCache } from "@/lib/ranking/server/cache";
+import { getEmbeddings } from "@/lib/ranking/server/embeddings";
+import { parseQuery } from "@/lib/ranking/server/query";
+import { isRateLimited } from "@/lib/ranking/server/rateLimit";
+import { buildPlaceText, scoreSpots, studyScore, type RankSpot } from "@/lib/ranking/server/score";
+import { parseRankRequest } from "@/lib/ranking/server/validate";
 
-// Cache of place embeddings by place ID, so each place is only embedded once
-// Stored in memory, so it resets when the server restarts
-const embeddingCache = new Map<string, number[]>();
+const ONE_HOUR = 60 * 60 * 1000;
 
-// Max texts sent in one embeddings request
-const EMBED_BATCH_SIZE = 100;
+// Each place's embedding (~6 KB) and study score (one number), kept for an hour
+const placeEmbeddingCache = new LruCache<Float32Array>(2000, ONE_HOUR);
+const studyScoreCache = new LruCache<number>(5000, ONE_HOUR);
 
-// Gets embeddings for many texts at once, not just one request per text
-async function getEmbeddings(texts: string[]): Promise<number[][]> {
-  const embeddings: number[][] = [];
-
-  for (let start = 0; start < texts.length; start += EMBED_BATCH_SIZE) {
-    const batch = texts.slice(start, start + EMBED_BATCH_SIZE);
-
-    const res = await fetch("https://api.openai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: "text-embedding-3-small",
-        input: batch,
-      }),
-    });
-
-    if (!res.ok) {
-      throw new Error(`Embeddings request failed: ${res.status} ${await res.text()}`);
-    }
-
-    const data: { data: { index: number; embedding: number[] }[] } = await res.json();
-
-    // Sort by index so each embedding lines up with the text it came from
-    data.data
-      .sort((a, b) => a.index - b.index)
-      .forEach(item => embeddings.push(item.embedding));
+// Scores each spot by how well it fits the query and how good it is for studying
+export async function POST(req: NextRequest) {
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  if (isRateLimited(ip)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  return embeddings;
-}
-
-// How similar two embeddings are, from -1 to 1 (higher = closer in meaning)
-// Compares direction only, so longer text doesn't score higher just for being longer
-function cosineSimilarity(a: number[], b: number[]): number {
-  const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
-  const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
-  const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
-  return dot / (magA * magB);
-}
-
-interface RankSpot {
-  id: string;
-  name: string;
-  types?: string[];
-  reviewMentions?: string[];
-  reviewText?: string;
-  rating?: number;
-}
-
-// Builds the text that describes a place for its embedding
-function buildPlaceText(spot: RankSpot): string {
-  const parts = [
-    spot.name,
-    spot.types?.join(" ") ?? "",
-    spot.reviewMentions && spot.reviewMentions.length > 0
-      ? spot.reviewMentions.join(", ")
-      : "study location",
-    spot.rating ? `rated ${spot.rating} out of 5` : "",
-    // Review text
-    spot.reviewText ? `Reviews: ${spot.reviewText.slice(0, 2000)}` : "",
-  ];
-  const text = parts.filter(Boolean).join(". ");
-  return text.trim() || spot.name;
-}
-
-// Scores each spot by how well it matches the query
-export async function POST(req: NextRequest) {
-  const { query, spots } = await req.json();
-
-  if (!query || !spots || !Array.isArray(spots)) {
+  const parsed = parseRankRequest(await req.json().catch(() => null));
+  if (!parsed) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
+  const { spots } = parsed;
 
-  const rankSpots = spots as RankSpot[];
+  // e.g. "cafe with outlets" → category "Café/Coffee Shop", needs "outlets"
+  const query = parseQuery(parsed.query);
 
   try {
-    // Embed the query and any places not cached yet in one batch
-    const uncached = rankSpots.filter(spot => !embeddingCache.has(spot.id));
-    const [queryEmbedding, ...placeEmbeddings] = await getEmbeddings([
-      query,
-      ...uncached.map(buildPlaceText),
-    ]);
-    uncached.forEach((spot, i) => embeddingCache.set(spot.id, placeEmbeddings[i]));
+    const anchors = await getAnchors();
 
-    const scoreMap: Record<string, number> = {};
-    rankSpots.forEach(spot => {
-      const placeEmbedding = embeddingCache.get(spot.id)!;
-      const similarity = cosineSimilarity(queryEmbedding, placeEmbedding);
-      const ratingScore = (spot.rating ?? 0) / 5;
+    // Use cached values where we have them, and note what still needs embedding
+    const placeEmbeddings = new Map<string, Float32Array>();
+    const studyScores = new Map<string, number>();
+    const uncachedPlaces: RankSpot[] = [];
+    const unscoredPlaces: RankSpot[] = [];
 
-      // 70% semantic match, 30% rating
-      scoreMap[spot.id] = similarity * 0.7 + ratingScore * 0.3;
+    spots.forEach(spot => {
+      const embedding = placeEmbeddingCache.get(spot.id);
+      if (embedding) placeEmbeddings.set(spot.id, embedding);
+      else uncachedPlaces.push(spot);
+
+      const score = studyScoreCache.get(spot.id);
+      if (score !== undefined) studyScores.set(spot.id, score);
+      else if (spot.reviews?.length) unscoredPlaces.push(spot);
     });
 
-    return NextResponse.json({ scores: scoreMap });
+    // One batch: the user's needs, then new place descriptions,
+    // then every review of places without a study score
+    const vectors = await getEmbeddings([
+      query.needs,
+      ...uncachedPlaces.map(buildPlaceText),
+      ...unscoredPlaces.flatMap(spot => spot.reviews ?? []),
+    ]);
+
+    // Read the results back in the same order they were sent
+    let next = 0;
+    const needsEmbedding = vectors[next++];
+
+    uncachedPlaces.forEach(spot => {
+      const embedding = vectors[next++];
+      placeEmbeddings.set(spot.id, embedding);
+      placeEmbeddingCache.set(spot.id, embedding);
+    });
+
+    // Review embeddings are only needed long enough to compute the study score
+    unscoredPlaces.forEach(spot => {
+      const reviewEmbeddings = (spot.reviews ?? []).map(() => vectors[next++]);
+      const score = studyScore(reviewEmbeddings, anchors);
+      studyScores.set(spot.id, score);
+      studyScoreCache.set(spot.id, score);
+    });
+
+    return NextResponse.json({
+      scores: scoreSpots(query, needsEmbedding, spots, placeEmbeddings, studyScores),
+    });
   } catch (err) {
     console.error("Ranking error:", err);
     // Client falls back to sorting by rating when this fails

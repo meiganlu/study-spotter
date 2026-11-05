@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import type { StudySpot } from "../../types";
+import type { StudySpot } from "@/types";
+import { getCategory, getCategoryEmoji } from "@/lib/categories";
 import Image from "next/image";
 
 interface SpotModalProps {
@@ -50,7 +51,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
             </div>
           ) : (
             <span className="text-7xl">
-              {getEmojiFromTypes(spot.types)}
+              {getCategoryEmoji(spot.types)}
             </span>
           )}
 
@@ -65,6 +66,20 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
 
         {/* Content */}
         <div className="p-6 sm:p-8">
+          {/* Photo author, which Google requires alongside its photos */}
+          {spot.photoUrl && spot.photoCredit && (
+            <p className="text-xs text-[#515D5A] mb-3">
+              Photo:{" "}
+              {spot.photoCredit.url ? (
+                <a href={spot.photoCredit.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {spot.photoCredit.name}
+                </a>
+              ) : (
+                spot.photoCredit.name
+              )}
+            </p>
+          )}
+
           <h2 className="text-2xl sm:text-3xl font-semibold text-[#2C4A3E] mb-3">
             {spot.name}
           </h2>
@@ -84,7 +99,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
             <div className="mb-4">
               <p className="text-xs font-medium text-[rgb(93,109,67)]/80 mb-1">CATEGORY</p>
               <p className="text-base text-[#2C4A3E] font-semibold capitalize">
-                {getCategoryFromTypes(spot.types, spot.name)}
+                {getCategory(spot.types, spot.name)}
               </p>
             </div>
           )}
@@ -119,38 +134,11 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
               </div>
             </div>
           )}
+
+          {/* Google attribution, required when Places data is shown without a Google map */}
+          <p className="text-xs text-[#515D5A] text-right mt-6">Google Maps</p>
         </div>
       </div>
     </div>
   );
-}
-
-function getCategoryFromTypes(types?: string[], name?: string): string {
-  if (!types && !name) return "Study Spot";
-
-  const nameLower = name?.toLowerCase() || "";
-
-  if (nameLower.includes("library")) return "Library";
-  if (nameLower.includes("student") || nameLower.includes("university") || nameLower.includes("school")) return "Study Lounge";
-  if (nameLower.includes("cafe") || nameLower.includes("coffee")) return "Café/Coffee Shop";
-
-  if (types?.includes("library")) return "Library";
-  if (types?.includes("cafe") || types?.includes("coffee_shop")) return "Café/Coffee Shop";
-  if (types?.includes("community_center")) return "Community Center";
-  if (types?.includes("park")) return "Outdoor Area";
-  if (types?.includes("university") || types?.includes("school")) return "Student Lounge";
-
-  return "Study Spot";
-}
-
-function getEmojiFromTypes(types?: string[]): string {
-  if (!types) return "📍";
-
-  if (types.includes("library")) return "📚";
-  if (types.includes("cafe") || types.includes("coffee_shop")) return "☕";
-  if (types.includes("community_center")) return "🏛️";
-  if (types.includes("park")) return "🌳";
-  if (types.includes("university") || types.includes("school")) return "🎓";
-
-  return "📍";
 }
