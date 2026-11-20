@@ -45,6 +45,7 @@ export default function SpotModal({ spot, onClose }: SpotModalProps) {
                 src={spot.photoUrl}
                 alt={spot.name}
                 fill
+                unoptimized
                 className="object-cover rounded-t-3xl"
                 sizes="(max-width: 768px) 100vw, 600px"
               />
